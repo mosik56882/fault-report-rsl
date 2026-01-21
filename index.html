@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>דיווח תקלות - RSL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom right, #f0fdf4, #f0f9ff);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #6b7280;
+            font-size: 16px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            font-size: 24px;
+            color: #1f2937;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #8b5cf6;
+        }
+        
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .equipment-card {
+            background: #faf5ff;
+            border: 2px solid #d8b4fe;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .equipment-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-grid-full {
+            grid-column: 1 / -1;
+        }
+        
+        .btn-save {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            font-size: 16px;
+        }
+        
+        .btn-save:hover {
+            background: #16a34a;
+        }
+        
+        .equipment-form {
+            background: #faf5ff;
+            padding: 15px;
+            border-radius: 6px;
+            border: 2px solid #d8b4fe;
+            margin-top: 10px;
+            max-width: 400px;
+        }
+        
+        .btn-primary {
+            background: #a855f7;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .btn-primary:hover {
+            background: #9333ea;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+        
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .form-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-ok {
+            background: #22c55e;
+            color: white;
+        }
+        
+        .btn-ok:hover {
+            background: #16a34a;
+        }
+        
+        .btn-cancel {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-cancel:hover {
+            background: #4b5563;
+        }
+        
+        .fault-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #fafafa;
+        }
+        
+        .fault-item:hover {
+            border-color: #22c55e;
+        }
+        
+        .fault-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .fault-field {
+            margin-bottom: 10px;
+        }
+        
+        .fault-field strong {
+            color: #1f2937;
+        }
+        
+        .fault-field p {
+            color: #4b5563;
+            margin-top: 3px;
+        }
+        
+        .fault-description {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .fault-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .fault-buttons button {
+            flex: 1;
+            min-width: 120px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .btn-rsl {
+            background: #059669;
+            color: white;
+        }
+        
+        .btn-rsl:hover {
+            background: #047857;
+        }
+        
+        .btn-whatsapp {
+            background: #22c55e;
+            color: white;
+        }
+        
+        .btn-whatsapp:hover {
+            background: #16a34a;
+        }
+        
+        .btn-copy {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-copy:hover {
+            background: #2563eb;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+            font-size: 16px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 דיווח תקלות</h1>
+            <p>מערכת דיווח תקלות ל-WhatsApp עם ניהול ציוד</p>
+        </div>
+
+        <!-- Equipment Management -->
+        <div class="section">
+            <h2>⚙️ ניהול ציוד</h2>
+            <div class="equipment-grid" id="equipmentGrid"></div>
+            <button class="btn-primary" onclick="toggleEquipmentForm()">➕ הוסף ציוד</button>
+            <div id="equipmentForm" class="equipment-form hidden">
+                <div class="form-group">
+                    <label>שם הציוד *</label>
+                    <input type="text" id="eqName" placeholder="הכנס שם">
+                </div>
+                <div class="form-group">
+                    <label>סוג ציוד</label>
+                    <select id="eqType" onchange="updateParentOptions()">
+                        <option value="parent">ציוד אב (עם תת-יחידות)</option>
+                        <option value="child">ציוד בן (תת-יחידה)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="parentSelect" style="display:none;">
+                    <label>שייך ל- *</label>
+                    <select id="eqParent">
+                        <option value="">-- בחר ציוד אב --</option>
+                    </select>
+                </div>
+                <div class="form-buttons">
+                    <button class="btn-ok" onclick="addEquipment()">שמור</button>
+                    <button class="btn-cancel" onclick="toggleEquipmentForm()">בטל</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Form -->
+        <div class="section">
+            <h2>📋 טופס דיווח תקלה</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>בחר ציוד *</label>
+                    <select id="equipment">
+                        <option value="">-- בחר ציוד --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>שם המדווח *</label>
+                    <input type="text" id="reporterName" placeholder="הכנס שם">
+                </div>
+                <div class="form-group">
+                    <label>טכנאי/גורם מבצע *</label>
+                    <input type="text" id="technician" placeholder="הכנס שם">
+                </div>
+                <div class="form-group">
+                    <label>זמן התקלה</label>
+                    <input type="datetime-local" id="faultTime">
+                </div>
+                <div class="form-group form-grid-full">
+                    <label>תיאור התקלה</label>
+                    <textarea id="description" rows="4" placeholder="תאר את התקלה..."></textarea>
+                </div>
+                <div class="form-group form-grid-full">
+                    <button class="btn-save" onclick="submitFault()">💾 שמור דיווח</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Faults History -->
+        <div class="section">
+            <h2>📋 היסטוריית דיווחים (<span id="faultCount">0</span>)</h2>
+            <div id="faultsList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Keys
+        const STORAGE_KEY = 'fr_rsl_state_v1';
+
+        // Default data
+        const defaultEquipment = [
+            {
+                id: 1,
+                name: 'קו ייצור A',
+                isParent: true,
+                children: [
+                    { id: 11, name: 'מנוע ראשי' },
+                    { id: 12, name: 'שרשרת הובלה' },
+                    { id: 13, name: 'מערכת קירור' }
+                ]
+            },
+            {
+                id: 2,
+                name: 'קו ייצור B',
+                isParent: true,
+                children: [
+                    { id: 21, name: 'משאבה חשמלית' },
+                    { id: 22, name: 'דור אוויר דחוס' }
+                ]
+            },
+            {
+                id: 3,
+                name: 'מכונת הדפסה',
+                isParent: false,
+                children: []
+            }
+        ];
+
+        // State
+        let equipment = [];
+        let faults = [];
+        let nextId = 100;
+
+        function saveState() {
+            const state = {
+                equipment,
+                faults,
+                nextId
+            };
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.warn('לא ניתן לשמור ל-localStorage', e);
+            }
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    equipment = parsed.equipment || defaultEquipment.slice();
+                    faults = parsed.faults || [];
+                    nextId = typeof parsed.nextId === 'number' ? parsed.nextId : 100;
+                    return;
+                }
+            } catch (e) {
+                console.warn('שגיאה בטעינת מצב מה-localStorage', e);
+            }
+            // fallback
+            equipment = defaultEquipment.slice();
+            faults = [];
+            nextId = 100;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            setDefaultDateTime();
+            renderEquipment();
+            renderFaults();
+            updateEquipmentSelect();
+        });
+
+        function setDefaultDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('faultTime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        function toggleEquipmentForm() {
+            const form = document.getElementById('equipmentForm');
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                document.getElementById('eqName').focus();
+            } else {
+                document.getElementById('eqName').value = '';
+                document.getElementById('eqType').value = 'parent';
+                document.getElementById('parentSelect').style.display = 'none';
+            }
+        }
+
+        function updateParentOptions() {
+            const type = document.getElementById('eqType').value;
+            document.getElementById('parentSelect').style.display = type === 'child' ? 'block' : 'none';
+        }
+
+        function addEquipment() {
+            const name = document.getElementById('eqName').value.trim();
+            const type = document.getElementById('eqType').value;
+            const parentId = document.getElementById('eqParent').value;
+
+            if (!name) {
+                alert('הכנס שם ציוד!');
+                return;
+            }
+
+            if (type === 'child') {
+                if (!parentId) {
+                    alert('בחר ציוד אב!');
+                    return;
+                }
+                const parent = equipment.find(e => e.id === parseInt(parentId));
+                if (parent) {
+                    parent.children.push({ id: nextId++, name: name });
+                }
+            } else {
+                equipment.push({ id: nextId++, name: name, isParent: true, children: [] });
+            }
+
+            saveState();
+            renderEquipment();
+            updateEquipmentSelect();
+            toggleEquipmentForm();
+        }
+
+        function deleteEquipment(parentId, childId) {
+            if (childId) {
+                const parent = equipment.find(e => e.id === parentId);
+                if (parent) {
+                    parent.children = parent.children.filter(c => c.id !== childId);
+                }
+            } else {
+                equipment = equipment.filter(e => e.id !== parentId);
+            }
+            saveState();
+            renderEquipment();
+            updateEquipmentSelect();
+        }
+
+        function renderEquipment() {
+            const grid = document.getElementById('equipmentGrid');
+            grid.innerHTML = '';
+
+            equipment.forEach(eq => {
+                const card = document.createElement('div');
+                card.className = 'equipment-card';
+
+                const header = document.createElement('div');
+                header.className = 'equipment-card-header';
+                header.innerHTML = `<strong>${eq.name}</strong>`;
+
+                const actions = document.createElement('div');
+                actions.innerHTML = `<button onclick="deleteEquipment(${eq.id})">🗑️ מחק</button>`;
+                header.appendChild(actions);
+                card.appendChild(header);
+
+                if (eq.children && eq.children.length) {
+                    const list = document.createElement('ul');
+                    eq.children.forEach(child => {
+                        const li = document.createElement('li');
+                        li.textContent = child.name + ' ';
+                        const delBtn = document.createElement('button');
+                        delBtn.textContent = '🗑️';
+                        delBtn.onclick = () => deleteEquipment(eq.id, child.id);
+                        li.appendChild(delBtn);
+                        list.appendChild(li);
+                    });
+                    card.appendChild(list);
+                }
+
+                grid.appendChild(card);
+            });
+        }
+
+        function updateEquipmentSelect() {
+            const select = document.getElementById('equipment');
+            const parentSelect = document.getElementById('eqParent');
+
+            select.innerHTML = '<option value="">-- בחר ציוד --</option>';
+
+            equipment.forEach(eq => {
+                select.innerHTML += `<optgroup label="${eq.name}">
+                    <option value="${eq.id}">${eq.name}</option>
+                    ${eq.children.map(child => `<option value="${child.id}">&nbsp;&nbsp;↳ ${child.name}</option>`).join('')}
+                </optgroup>`;
+            });
+
+            parentSelect.innerHTML = '<option value="">-- בחר ציוד אב --</option>';
+            equipment.filter(e => e.isParent).forEach(eq => {
+                parentSelect.innerHTML += `<option value="${eq.id}">${eq.name}</option>`;
+            });
+        }
+
+        function getEquipmentLabel(id) {
+            for (let eq of equipment) {
+                if (eq.id === id) return eq.name;
+                const child = eq.children.find(c => c.id === id);
+                if (child) return `${eq.name} > ${child.name}`;
+            }
+            return '';
+        }
+
+        function submitFault() {
+            const eqId = parseInt(document.getElementById('equipment').value);
+            const reporterName = document.getElementById('reporterName').value.trim();
+            const technician = document.getElementById('technician').value.trim();
+            const faultTime = document.getElementById('faultTime').value;
+            const description = document.getElementById('description').value.trim();
+
+            if (!eqId || !reporterName || !technician) {
+                alert('מלא את כל השדות החובה!');
+                return;
+            }
+
+            faults.push({
+                id: nextId++,
+                equipment: eqId,
+                equipmentLabel: getEquipmentLabel(eqId),
+                reporterName: reporterName,
+                technician: technician,
+                faultTime: faultTime,
+                description: description,
+                createdAt: new Date().toLocaleString('he-IL')
+            });
+
+            document.getElementById('equipment').value = '';
+            document.getElementById('reporterName').value = '';
+            document.getElementById('technician').value = '';
+            document.getElementById('description').value = '';
+            setDefaultDateTime();
+
+            saveState();
+            renderFaults();
+        }
+
+        function formatWhatsAppMessage(fault) {
+            return `📋 *דיווח תקלה*\n\n🏭 *ציוד*: ${fault.equipmentLabel}\n📞 *דיווח על ידי*: ${fault.reporterName}\n🔧 *טכנאי*: ${fault.technician}\n⏰ *זמן התקלה*: ${new Date(fault.faultTime).toLocaleString('he-IL')}\n📝 *תיאור*: ${fault.description || 'ללא תיאור נוסף'}\n📅 *רישום*: ${fault.createdAt}`;
+        }
+
+        function sendToWhatsApp(faultId, isRSL) {
+            const fault = faults.find(f => f.id === faultId);
+            if (!fault) return;
+
+            const message = formatWhatsAppMessage(fault);
+            const encoded = encodeURIComponent(message);
+            window.open(`https://wa.me/?text=${encoded}`, '_blank');
+        }
+
+        function copyToClipboard(faultId) {
+            const fault = faults.find(f => f.id === faultId);
+            if (!fault) return;
+
+            const message = formatWhatsAppMessage(fault);
+            navigator.clipboard.writeText(message).then(() => {
+                alert('✓ הודעה הועתקה!');
+            }).catch(() => {
+                alert('שגיאה בהעתקה');
+            });
+        }
+
+        function deleteFault(id) {
+            if (confirm('האם אתה בטוח?')) {
+                faults = faults.filter(f => f.id !== id);
+                saveState();
+                renderFaults();
+            }
+        }
+
+        function renderFaults() {
+            const container = document.getElementById('faultsList');
+            document.getElementById('faultCount').textContent = faults.length;
+
+            if (faults.length === 0) {
+                container.innerHTML = '<div class="empty-message">אין דיווחים עדיין</div>';
+                return;
+            }
+
+            container.innerHTML = faults.map(fault => `
+                <div class="fault-item">
+                    <div class="fault-grid">
+                        <div class="fault-field">
+                            <strong>ציוד:</strong>
+                            <p>${fault.equipmentLabel}</p>
+                        </div>
+                        <div class="fault-field">
+                            <strong>דיווח:</strong>
+                            <p>${fault.reporterName}</p>
+                        </div>
+                        <div class="fault-field">
+                            <strong>טכנאי:</strong>
+                            <p>${fault.technician}</p>
+                        </div>
+                        <div class="fault-field">
+                            <strong>זמן:</strong>
+                            <p>${new Date(fault.faultTime).toLocaleString('he-IL')}</p>
+                        </div>
+                    </div>
+                    ${fault.description ? `<div class="fault-description"><strong>תיאור:</strong> ${fault.description}</div>` : ''}
+                    <div class="fault-buttons">
+                        <button class="fault-buttons button btn-rsl" onclick="sendToWhatsApp(${fault.id}, true)">📱 שלח ל-RSL</button>
+                        <button class="fault-buttons button btn-whatsapp" onclick="sendToWhatsApp(${fault.id}, false)">💬 שלח ל-WhatsApp</button>
+                        <button class="fault-buttons button btn-copy" onclick="copyToClipboard(${fault.id})">📋 העתק</button>
+                        <button class="fault-buttons button btn-delete" onclick="deleteFault(${fault.id})">🗑️ מחק</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
