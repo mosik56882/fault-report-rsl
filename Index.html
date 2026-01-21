@@ -76,40 +76,40 @@
             margin-bottom: 10px;
         }
         
-        .equipment-card-header span {
-            font-weight: 600;
-            color: #1f2937;
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
         }
         
-        .btn-delete {
-            background: #ef4444;
+        .form-grid-full {
+            grid-column: 1 / -1;
+        }
+        
+        .btn-save {
+            background: #22c55e;
             color: white;
             border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 12px 20px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-weight: 600;
+            width: 100%;
+            font-size: 16px;
         }
         
-        .btn-delete:hover {
-            background: #dc2626;
+        .btn-save:hover {
+            background: #16a34a;
         }
         
-        .equipment-children {
-            border-top: 2px solid #d8b4fe;
-            padding-top: 10px;
+        .equipment-form {
+            background: #faf5ff;
+            padding: 15px;
+            border-radius: 6px;
+            border: 2px solid #d8b4fe;
             margin-top: 10px;
-        }
-        
-        .equipment-child {
-            background: #e9d5ff;
-            padding: 8px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
+            max-width: 400px;
         }
         
         .btn-primary {
@@ -155,43 +155,6 @@
         .form-group select:focus {
             outline: none;
             border-color: #22c55e;
-            box-shadow: 0 0 5px rgba(34, 197, 94, 0.2);
-        }
-        
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .form-grid-full {
-            grid-column: 1 / -1;
-        }
-        
-        .btn-save {
-            background: #22c55e;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            width: 100%;
-            font-size: 16px;
-        }
-        
-        .btn-save:hover {
-            background: #16a34a;
-        }
-        
-        .equipment-form {
-            background: #faf5ff;
-            padding: 15px;
-            border-radius: 6px;
-            border: 2px solid #d8b4fe;
-            margin-top: 10px;
-            max-width: 400px;
         }
         
         .form-buttons {
@@ -241,9 +204,9 @@
         
         .fault-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
         }
         
         .fault-field {
@@ -400,8 +363,11 @@
     </div>
 
     <script>
-        // Data
-        let equipment = [
+        // Keys
+        const STORAGE_KEY = 'fr_rsl_state_v1';
+
+        // Default data
+        const defaultEquipment = [
             {
                 id: 1,
                 name: 'קו ייצור A',
@@ -429,11 +395,46 @@
             }
         ];
 
+        // State
+        let equipment = [];
         let faults = [];
         let nextId = 100;
 
+        function saveState() {
+            const state = {
+                equipment,
+                faults,
+                nextId
+            };
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.warn('לא ניתן לשמור ל-localStorage', e);
+            }
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    equipment = parsed.equipment || defaultEquipment.slice();
+                    faults = parsed.faults || [];
+                    nextId = typeof parsed.nextId === 'number' ? parsed.nextId : 100;
+                    return;
+                }
+            } catch (e) {
+                console.warn('שגיאה בטעינת מצב מה-localStorage', e);
+            }
+            // fallback
+            equipment = defaultEquipment.slice();
+            faults = [];
+            nextId = 100;
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            loadState();
             setDefaultDateTime();
             renderEquipment();
             renderFaults();
@@ -490,6 +491,7 @@
                 equipment.push({ id: nextId++, name: name, isParent: true, children: [] });
             }
 
+            saveState();
             renderEquipment();
             updateEquipmentSelect();
             toggleEquipmentForm();
@@ -504,38 +506,52 @@
             } else {
                 equipment = equipment.filter(e => e.id !== parentId);
             }
+            saveState();
             renderEquipment();
             updateEquipmentSelect();
         }
 
         function renderEquipment() {
             const grid = document.getElementById('equipmentGrid');
-            grid.innerHTML = equipment.map(eq => `
-                <div class="equipment-card">
-                    <div class="equipment-card-header">
-                        <span>${eq.name}</span>
-                        <button class="btn-delete" onclick="deleteEquipment(${eq.id}, null)">❌</button>
-                    </div>
-                    ${eq.children.length > 0 ? `
-                        <div class="equipment-children">
-                            ${eq.children.map(child => `
-                                <div class="equipment-child">
-                                    <span>↳ ${child.name}</span>
-                                    <button class="btn-delete" onclick="deleteEquipment(${eq.id}, ${child.id})" style="padding:3px 8px;font-size:12px;">✕</button>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
+            grid.innerHTML = '';
+
+            equipment.forEach(eq => {
+                const card = document.createElement('div');
+                card.className = 'equipment-card';
+
+                const header = document.createElement('div');
+                header.className = 'equipment-card-header';
+                header.innerHTML = `<strong>${eq.name}</strong>`;
+
+                const actions = document.createElement('div');
+                actions.innerHTML = `<button onclick="deleteEquipment(${eq.id})">🗑️ מחק</button>`;
+                header.appendChild(actions);
+                card.appendChild(header);
+
+                if (eq.children && eq.children.length) {
+                    const list = document.createElement('ul');
+                    eq.children.forEach(child => {
+                        const li = document.createElement('li');
+                        li.textContent = child.name + ' ';
+                        const delBtn = document.createElement('button');
+                        delBtn.textContent = '🗑️';
+                        delBtn.onclick = () => deleteEquipment(eq.id, child.id);
+                        li.appendChild(delBtn);
+                        list.appendChild(li);
+                    });
+                    card.appendChild(list);
+                }
+
+                grid.appendChild(card);
+            });
         }
 
         function updateEquipmentSelect() {
             const select = document.getElementById('equipment');
             const parentSelect = document.getElementById('eqParent');
-            
+
             select.innerHTML = '<option value="">-- בחר ציוד --</option>';
-            
+
             equipment.forEach(eq => {
                 select.innerHTML += `<optgroup label="${eq.name}">
                     <option value="${eq.id}">${eq.name}</option>
@@ -587,18 +603,12 @@
             document.getElementById('description').value = '';
             setDefaultDateTime();
 
+            saveState();
             renderFaults();
         }
 
         function formatWhatsAppMessage(fault) {
-            return `📋 *דיווח תקלה*
-
-🏭 *ציוד*: ${fault.equipmentLabel}
-📞 *דיווח על ידי*: ${fault.reporterName}
-🔧 *טכנאי*: ${fault.technician}
-⏰ *זמן התקלה*: ${new Date(fault.faultTime).toLocaleString('he-IL')}
-📝 *תיאור*: ${fault.description || 'ללא תיאור נוסף'}
-📅 *רישום*: ${fault.createdAt}`;
+            return `📋 *דיווח תקלה*\n\n🏭 *ציוד*: ${fault.equipmentLabel}\n📞 *דיווח על ידי*: ${fault.reporterName}\n🔧 *טכנאי*: ${fault.technician}\n⏰ *זמן התקלה*: ${new Date(fault.faultTime).toLocaleString('he-IL')}\n📝 *תיאור*: ${fault.description || 'ללא תיאור נוסף'}\n📅 *רישום*: ${fault.createdAt}`;
         }
 
         function sendToWhatsApp(faultId, isRSL) {
@@ -625,6 +635,7 @@
         function deleteFault(id) {
             if (confirm('האם אתה בטוח?')) {
                 faults = faults.filter(f => f.id !== id);
+                saveState();
                 renderFaults();
             }
         }
