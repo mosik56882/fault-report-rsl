@@ -1,1 +1,392 @@
 
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>דיווח תקלות - RSL</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(to bottom right, #f0fdf4, #f0f9ff); padding: 20px; min-height: 100vh; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 20px; }
+    .header h1 { font-size: 28px; color: #1f2937; }
+    .nav a { color:#2563eb; text-decoration:none; font-weight:600; }
+    .nav a:hover { text-decoration:underline; }
+
+    .section { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+    .section h2 { font-size: 20px; color: #1f2937; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 3px solid #8b5cf6; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .form-group { display:flex; flex-direction:column; gap:6px; }
+    label { font-weight:600; color:#374151; font-size: 14px; }
+    .input, .select, textarea { padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 14px; }
+    .input:focus, .select:focus, textarea:focus { outline:none; border-color:#22c55e; }
+    .btn { cursor:pointer; padding:10px 14px; border:none; border-radius:6px; font-weight:700; }
+    .btn-save { background:#22c55e; color:white; width:100%; }
+    .btn-save:hover { background:#16a34a; }
+
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom: 12px; }
+    .btn-outline { background:#fff; color:#374151; border:2px solid #d1d5db; }
+    .btn-outline:hover { background:#f3f4f6; }
+    .btn-secondary { background:#3b82f6; color:#fff; }
+    .btn-secondary:hover { background:#2563eb; }
+
+    .fault-item { border:2px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px; background:#fafafa; }
+    .fault-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:8px; }
+    .fault-field strong { color:#1f2937; }
+    .fault-field p { color:#4b5563; margin-top:4px; }
+    .fault-description { background:#f3f4f6; padding:8px; border-radius:4px; margin-top:8px; }
+    .fault-buttons { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .btn-rsl { background:#059669; color:#fff; }
+    .btn-whatsapp { background:#22c55e; color:#fff; }
+    .btn-copy { background:#3b82f6; color:#fff; }
+    .btn-delete { background:#ef4444; color:#fff; }
+    .btn-edit-fault { background:#f59e0b; color:#fff; }
+    .empty-message { text-align:center; padding:30px; color:#9ca3af; }
+    .edit-fault { background:#fff; border:2px dashed #d1d5db; border-radius:8px; padding:10px; margin-top:10px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📱 דיווח תקלות</h1>
+    <div class="nav">
+      <a href="equipment-admin.html" title="ניהול ציוד (אדמין)">⚙️ ניהול ציוד (אדמין)</a>
+    </div>
+  </div>
+
+  <!-- Report Form -->
+  <div class="section">
+    <h2>📋 טופס דיווח תקלה</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>בחר ציוד *</label>
+        <select id="equipment" class="select">
+          <option value="">-- בחר ציוד --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>שם המדווח *</label>
+        <input type="text" id="reporterName" class="input" placeholder="הכנס שם">
+      </div>
+      <div class="form-group">
+        <label>טכנאי/גורם מבצע *</label>
+        <input type="text" id="technician" class="input" placeholder="הכנס שם">
+      </div>
+      <div class="form-group">
+        <label>זמן התקלה</label>
+        <input type="datetime-local" id="faultTime" class="input">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>תיאור התקלה</label>
+        <textarea id="description" rows="3" placeholder="תאר את התקלה..."></textarea>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <button class="btn btn-save" onclick="submitFault()">💾 שמור דיווח</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Faults -->
+  <div class="section">
+    <h2>📜 היסטוריית דיווחים (<span id="faultCount">0</span>)</h2>
+    <div class="toolbar">
+      <input id="faultSearch" class="input" type="text" placeholder="חיפוש: ציוד / מדווח / טכנאי / תיאור..." oninput="renderFaults()">
+      <input id="faultFrom" class="input" type="date" title="מתאריך" onchange="renderFaults()">
+      <input id="faultTo" class="input" type="date" title="עד תאריך" onchange="renderFaults()">
+      <button class="btn btn-outline" onclick="clearFaultFilters()">נקה</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary" onclick="exportFaultsCsv()">⬇️ ייצוא CSV</button>
+    </div>
+    <div id="faultsList"></div>
+  </div>
+</div>
+
+<script>
+  // ===== Shared Storage Key =====
+  const STORAGE_KEY = 'fr_rsl_state_v1';
+
+  // ===== State =====
+  let equipment = [];
+  let faults = [];
+  let nextId = 100;
+
+  function escapeHtml(str = '') {
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function saveState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({equipment, faults, nextId})); }
+    catch(e){ console.warn('לא ניתן לשמור ל-localStorage', e); }
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        equipment = parsed.equipment || [];
+        faults = parsed.faults || [];
+        nextId = typeof parsed.nextId === 'number' ? parsed.nextId : 100;
+        return;
+      }
+    } catch(e){ console.warn('שגיאה בטעינת מצב', e); }
+    equipment = []; faults = []; nextId = 100;
+  }
+
+  function setDefaultDateTime() {
+    const now = new Date();
+    const y=now.getFullYear(), m=String(now.getMonth()+1).padStart(2,'0'), d=String(now.getDate()).padStart(2,'0');
+    const hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('faultTime').value = `${y}-${m}-${d}T${hh}:${mm}`;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    setDefaultDateTime();
+    updateEquipmentSelect();
+    renderFaults();
+  });
+
+  function updateEquipmentSelect() {
+    const select = document.getElementById('equipment');
+    select.innerHTML = '<option value="">-- בחר ציוד --</option>';
+    equipment.forEach(eq => {
+      const og = document.createElement('optgroup');
+      og.label = eq.name;
+      const o1 = document.createElement('option');
+      o1.value = String(eq.id);
+      o1.textContent = eq.name;
+      og.appendChild(o1);
+      (eq.children||[]).forEach(ch => {
+        const o2 = document.createElement('option');
+        o2.value = String(ch.id);
+        o2.textContent = `↳ ${ch.name}`;
+        og.appendChild(o2);
+      });
+      select.appendChild(og);
+    });
+  }
+
+  function getEquipmentLabel(id) {
+    for (let eq of equipment) {
+      if (eq.id === id) return eq.name;
+      const ch = (eq.children||[]).find(c => c.id === id);
+      if (ch) return `${eq.name} > ${ch.name}`;
+    }
+    return '';
+  }
+
+  function submitFault() {
+    const eqId = parseInt(document.getElementById('equipment').value,10);
+    const reporterName = document.getElementById('reporterName').value.trim();
+    const technician = document.getElementById('technician').value.trim();
+    const faultTime = document.getElementById('faultTime').value;
+    const description = document.getElementById('description').value.trim();
+
+    if (!eqId || !reporterName || !technician) {
+      alert('מלא את כל השדות החובה!');
+      return;
+    }
+
+    faults.push({
+      id: nextId++,
+      equipment: eqId,
+      equipmentLabel: getEquipmentLabel(eqId),
+      reporterName, technician, faultTime, description,
+      createdAt: new Date().toLocaleString('he-IL')
+    });
+
+    document.getElementById('equipment').value='';
+    document.getElementById('reporterName').value='';
+    document.getElementById('technician').value='';
+    document.getElementById('description').value='';
+    setDefaultDateTime();
+
+    saveState();
+    renderFaults();
+  }
+
+  // ===== Faults: Filter/Edit/Export =====
+  function getFilteredFaults() {
+    const q = document.getElementById('faultSearch').value.trim().toLowerCase();
+    const from = document.getElementById('faultFrom').value ? new Date(document.getElementById('faultFrom').value) : null;
+    const to = document.getElementById('faultTo').value ? new Date(document.getElementById('faultTo').value + 'T23:59:59') : null;
+
+    return faults.filter(f => {
+      let ref = null;
+      if (f.faultTime) { const dt = new Date(f.faultTime); if (!isNaN(dt)) ref = dt; }
+      if (!ref && f.createdAt) { const dt2 = new Date(f.createdAt); if (!isNaN(dt2)) ref = dt2; }
+      if (from && ref && ref < from) return false;
+      if (to && ref && ref > to) return false;
+
+      if (!q) return true;
+      const hay = [f.equipmentLabel||'', f.reporterName||'', f.technician||'', f.description||''].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function clearFaultFilters() {
+    document.getElementById('faultSearch').value='';
+    document.getElementById('faultFrom').value='';
+    document.getElementById('faultTo').value='';
+    renderFaults();
+  }
+
+  function exportFaultsCsv() {
+    const rows = getFilteredFaults();
+    const headers = ['ID','ציוד','מדווח','טכנאי','זמן תקלה','תיאור','נוצר בתאריך'];
+    const lines = [];
+    const q = s => `"${(s??'').toString().replace(/"/g,'""')}"`;
+    lines.push(headers.map(q).join(','));
+    rows.forEach(f=>{
+      lines.push([
+        q(f.id), q(f.equipmentLabel), q(f.reporterName), q(f.technician),
+        q(f.faultTime ? new Date(f.faultTime).toLocaleString('he-IL') : ''),
+        q(f.description||''), q(f.createdAt||'')
+      ].join(','));
+    });
+    const csv = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`faults_${formatStamp()}.csv`;
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },0);
+  }
+
+  function formatStamp(d=new Date()){const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;}
+
+  function formatWhatsAppMessage(f) {
+    return `📋 *דיווח תקלה*\n\n`+
+           `🏭 *ציוד*: ${f.equipmentLabel}\n`+
+           `📞 *דיווח על ידי*: ${f.reporterName}\n`+
+           `🔧 *טכנאי*: ${f.technician}\n`+
+           `⏰ *זמן התקלה*: ${f.faultTime ? new Date(f.faultTime).toLocaleString('he-IL') : ''}\n`+
+           `📝 *תיאור*: ${f.description || 'ללא תיאור נוסף'}\n`+
+           `📅 *רישום*: ${f.createdAt}`;
+  }
+
+  function sendToWhatsApp(id) {
+    const f = faults.find(x=>x.id===id); if(!f) return;
+    const encoded = encodeURIComponent(formatWhatsAppMessage(f));
+    window.open(`https://wa.me/?text=${encoded}`,'_blank');
+  }
+
+  function copyToClipboard(id) {
+    const f = faults.find(x=>x.id===id); if(!f) return;
+    const msg = formatWhatsAppMessage(f);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(msg).then(()=>alert('✓ הודעה הועתקה!')).catch(()=>fallback(msg));
+    } else fallback(msg);
+
+    function fallback(text){
+      const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); alert('✓ הודעה הועתקה!'); } catch{ alert('שגיאה בהעתקה'); }
+      finally{ document.body.removeChild(ta); }
+    }
+  }
+
+  function deleteFault(id) {
+    if (!confirm('האם אתה בטוח?')) return;
+    faults = faults.filter(x=>x.id!==id);
+    saveState(); renderFaults();
+  }
+
+  function toggleEditFault(id) {
+    const el = document.getElementById('edit_fault_'+id);
+    if (el) el.classList.toggle('hidden');
+  }
+
+  function saveEditFault(id) {
+    const f = faults.find(x=>x.id===id); if(!f) return;
+    const eqSel = document.getElementById('edit_eq_'+id);
+    const reporter = document.getElementById('edit_reporter_'+id).value.trim();
+    const tech = document.getElementById('edit_tech_'+id).value.trim();
+    const time = document.getElementById('edit_time_'+id).value;
+    const desc = document.getElementById('edit_desc_'+id).value.trim();
+
+    if (!eqSel.value || !reporter || !tech) { alert('מלא את כל השדות החובה!'); return; }
+    f.equipment = parseInt(eqSel.value,10);
+    f.equipmentLabel = getEquipmentLabel(f.equipment);
+    f.reporterName = reporter; f.technician = tech; f.faultTime = time; f.description = desc;
+    saveState(); renderFaults();
+  }
+
+  function cancelEditFault(id) {
+    const el = document.getElementById('edit_fault_'+id);
+    if (el) el.classList.add('hidden');
+  }
+
+  function getEquipmentOptionsHtml(selectedId) {
+    let html = '';
+    equipment.forEach(eq=>{
+      html += `<optgroup label="${escapeHtml(eq.name)}">`;
+      html += `<option value="${eq.id}" ${selectedId===eq.id?'selected':''}>${escapeHtml(eq.name)}</option>`;
+      (eq.children||[]).forEach(ch=>{
+        html += `<option value="${ch.id}" ${selectedId===ch.id?'selected':''}>↳ ${escapeHtml(ch.name)}</option>`;
+      });
+      html += `</optgroup>`;
+    });
+    return html;
+  }
+
+  function renderFaults() {
+    const list = document.getElementById('faultsList');
+    const rows = getFilteredFaults();
+    document.getElementById('faultCount').textContent = `${rows.length} / ${faults.length}`;
+    if (!rows.length) { list.innerHTML = '<div class="empty-message">אין דיווחים שעונים על הסינון</div>'; return; }
+
+    list.innerHTML = rows.map(f => {
+      const equipOptions = getEquipmentOptionsHtml(f.equipment);
+      return `
+        <div class="fault-item">
+          <div class="fault-grid">
+            <div class="fault-field"><strong>ציוד:</strong><p>${escapeHtml(f.equipmentLabel)}</p></div>
+            <div class="fault-field"><strong>דיווח:</strong><p>${escapeHtml(f.reporterName)}</p></div>
+            <div class="fault-field"><strong>טכנאי:</strong><p>${escapeHtml(f.technician)}</p></div>
+            <div class="fault-field"><strong>זמן:</strong><p>${f.faultTime ? new Date(f.faultTime).toLocaleString('he-IL') : ''}</p></div>
+          </div>
+          ${f.description ? `<div class="fault-description"><strong>תיאור:</strong> ${escapeHtml(f.description)}</div>` : ''}
+          <div class="fault-buttons">
+            <button class="btn-edit-fault" onclick="toggleEditFault(${f.id})">✏️ ערוך</button>
+            <button class="btn-rsl" onclick="sendToWhatsApp(${f.id})">📱 שלח ל‑RSL</button>
+            <button class="btn-whatsapp" onclick="sendToWhatsApp(${f.id})">💬 שלח ל‑WhatsApp</button>
+            <button class="btn-copy" onclick="copyToClipboard(${f.id})">📋 העתק</button>
+            <button class="btn-delete" onclick="deleteFault(${f.id})">🗑️ מחק</button>
+          </div>
+          <div id="edit_fault_${f.id}" class="edit-fault hidden">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>ציוד *</label>
+                <select id="edit_eq_${f.id}" class="select">${equipOptions}</select>
+              </div>
+              <div class="form-group">
+                <label>שם המדווח *</label>
+                <input id="edit_reporter_${f.id}" class="input" type="text" value="${escapeHtml(f.reporterName)}">
+              </div>
+              <div class="form-group">
+                <label>טכנאי/גורם מבצע *</label>
+                <input id="edit_tech_${f.id}" class="input" type="text" value="${escapeHtml(f.technician)}">
+              </div>
+              <div class="form-group">
+                <label>זמן התקלה</label>
+                <input id="edit_time_${f.id}" class="input" type="datetime-local" value="${f.faultTime ? new Date(f.faultTime).toISOString().slice(0,16) : ''}">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>תיאור</label>
+                <textarea id="edit_desc_${f.id}" rows="3">${escapeHtml(f.description||'')}</textarea>
+              </div>
+            </div>
+            <div class="toolbar">
+              <button class="btn btn-save" onclick="saveEditFault(${f.id})">💾 שמור</button>
+              <button class="btn btn-outline" onclick="cancelEditFault(${f.id})">בטל</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+</script>
+</body>
+</html>
+
