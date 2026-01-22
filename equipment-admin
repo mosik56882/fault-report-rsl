@@ -1,0 +1,770 @@
+
+<!DOCTYPE html>
+
+<html lang="he" dir="rtl">
+
+<head>
+
+  <meta charset="UTF-8"/>
+
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+
+  <title>ניהול ציוד (אדמין)</title>
+
+  <style>
+
+    *{margin:0;padding:0;box-sizing:border-box}
+
+    body{font-family:'Segoe UI',Tahoma,Verdana,sans-serif;background:linear-gradient(to bottom right,#fff7ed,#eef2ff);min-height:100vh;padding:20px}
+
+    .container{max-width:1100px;margin:0 auto}
+
+    .header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+
+    .header h1{font-size:26px;color:#1f2937}
+
+    .nav a{color:#2563eb;text-decoration:none;font-weight:600}
+
+    .nav a:hover{text-decoration:underline}
+
+    .panel{background:#fff;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,.08);padding:20px;margin-bottom:20px}
+
+    .panel h2{font-size:18px;color:#111827;margin-bottom:10px;border-bottom:3px solid #a78bfa;padding-bottom:8px}
+
+    .input,.select,.btn{padding:10px 12px;border-radius:8px;border:2px solid #d1d5db;font-size:14px;font-family:inherit}
+
+    .input:focus,.select:focus{outline:none;border-color:#22c55e}
+
+    .btn{cursor:pointer;font-weight:700}
+
+    .btn-primary{background:#8b5cf6;color:#fff;border-color:#8b5cf6}
+
+    .btn-primary:hover{background:#7c3aed;border-color:#7c3aed}
+
+    .btn-success{background:#22c55e;color:#fff;border-color:#22c55e}
+
+    .btn-success:hover{background:#16a34a;border-color:#16a34a}
+
+    .btn-danger{background:#ef4444;color:#fff;border-color:#ef4444}
+
+    .btn-danger:hover{background:#dc2626;border-color:#dc2626}
+
+    .btn-outline{background:#fff;color:#374151;border-color:#d1d5db}
+
+    .btn-outline:hover{background:#f3f4f6}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+
+    .equipment-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+
+    .card{background:#faf5ff;border:2px solid #d8b4fe;border-radius:10px;padding:12px}
+
+    .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+
+    .card ul{list-style:none;padding-right:18px}
+
+    .card li{display:flex;align-items:center;gap:8px;margin:3px 0;flex-wrap:wrap}
+
+    .hidden{display:none}
+
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+
+    label{font-weight:600;color:#374151;font-size:13px}
+
+    .hint{color:#6b7280;font-size:12px;margin-top:-6px}
+
+    .badge{display:inline-block;background:#f59e0b;color:#fff;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700;margin-bottom:8px}
+
+    .notice{color:#6b7280;font-size:13px}
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="header">
+
+    <h1>⚙️ ניהול ציוד (אדמין)</h1>
+
+    <div class="nav"><a href="index.html">← לדיווח תקלות</a></div>
+
+  </div>
+
+ 
+
+  <!-- Admin Auth -->
+
+  <div id="authPanel" class="panel">
+
+    <h2>🔐 הזדהות אדמין</h2>
+
+    <div id="setupBox" class="hidden">
+
+      <p class="notice" style="margin-bottom:10px">טרם הוגדרה סיסמת אדמין. הגדר/י סיסמה לשימוש עתידי:</p>
+
+      <div class="form-grid">
+
+        <div>
+
+          <label>סיסמה חדשה *</label>
+
+          <input type="password" id="newPass" class="input" placeholder="••••••••">
+
+        </div>
+
+        <div>
+
+          <label>אימות סיסמה *</label>
+
+          <input type="password" id="newPass2" class="input" placeholder="••••••••">
+
+        </div>
+
+      </div>
+
+      <button class="btn btn-success" onclick="setupAdmin()">שמור סיסמה</button>
+
+    </div>
+
+ 
+
+    <div id="loginBox" class="hidden">
+
+      <p class="notice" style="margin-bottom:10px">הכנס/י סיסמת אדמין כדי להמשיך.</p>
+
+      <div class="form-grid">
+
+        <div style="grid-column:1/-1">
+
+          <label>סיסמה *</label>
+
+          <input type="password" id="loginPass" class="input" placeholder="••••••••" onkeydown="if(event.key==='Enter') adminLogin()">
+
+        </div>
+
+      </div>
+
+      <button class="btn btn-primary" onclick="adminLogin()">כניסה</button>
+
+    </div>
+
+ 
+
+    <div id="authStatus" class="hidden">
+
+      <span class="badge">מחובר כאדמין</span>
+
+      <button class="btn btn-outline" onclick="adminLogout()">התנתק</button>
+
+    </div>
+
+  </div>
+
+ 
+
+  <!-- Equipment Admin UI -->
+
+  <div id="equipPanel" class="panel hidden">
+
+    <h2>רשימת ציוד</h2>
+
+    <div class="toolbar">
+
+      <input id="q" class="input" type="text" placeholder="חיפוש ציוד/תת-יחידה..." oninput="renderEquipment()">
+
+      <button class="btn btn-outline" onclick="document.getElementById('q').value=''; renderEquipment();">נקה</button>
+
+      <div style="flex:1"></div>
+
+      <button class="btn btn-primary" onclick="openCreate()">➕ הוסף ציוד</button>
+
+    </div>
+
+ 
+
+    <div id="grid" class="equipment-grid"></div>
+
+ 
+
+    <div id="formBox" class="panel hidden" style="margin-top:12px">
+
+      <div id="modeBadge" class="badge hidden">מצב עריכה</div>
+
+      <div class="form-grid">
+
+        <div>
+
+          <label>שם הציוד *</label>
+
+          <input type="text" id="eqName" class="input" placeholder="לדוגמה: מכבש מתיחה 1">
+
+          <div class="hint">שם קצר וברור עדיף</div>
+
+        </div>
+
+        <div>
+
+          <label>סוג ציוד</label>
+
+          <select id="eqType" class="select" onchange="toggleParentField()">
+
+            <option value="parent">ציוד אב</option>
+
+            <option value="child">ציוד בן</option>
+
+          </select>
+
+          <div id="typeHint" class="hint">בחר אם זה ציוד עצמאי או תת-יחידה</div>
+
+        </div>
+
+        <div id="parentField" class="hidden">
+
+          <label>שייך ל- *</label>
+
+          <select id="eqParent" class="select"></select>
+
+        </div>
+
+      </div>
+
+      <div class="toolbar" style="margin-top:8px">
+
+        <button id="btnSubmit" class="btn btn-success" onclick="saveEquipment()">שמור</button>
+
+        <button class="btn btn-outline" onclick="closeForm()">בטל</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+ 
+
+<script>
+
+  // ===== Storage & Auth (client-only) =====
+
+  const STORAGE_KEY = 'fr_rsl_state_v1';
+
+  const ADMIN_KEY = 'fr_rsl_admin_v1';       // { passHash: <hex> }
+
+  const ADMIN_SESSION_KEY = 'fr_rsl_admin_session_v1'; // '1' when logged in (sessionStorage)
+
+ 
+
+  let equipment = [];
+
+  let faults = [];
+
+  let nextId = 100;
+
+ 
+
+  // form state
+
+  let formMode = 'create'; // 'create' | 'edit'
+
+  let editCtx = null;      // { target:'parent'|'child', parentId, childId? }
+
+ 
+
+  function escapeHtml(str=''){return String(str).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+ 
+
+  function saveState() {
+
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({equipment, faults, nextId})); }
+
+    catch(e){ console.warn('לא ניתן לשמור מצב', e); }
+
+  }
+
+  function loadState() {
+
+    try {
+
+      const raw = localStorage.getItem(STORAGE_KEY);
+
+      if (raw) {
+
+        const parsed = JSON.parse(raw);
+
+        equipment = parsed.equipment || [];
+
+        faults = parsed.faults || [];
+
+        nextId = typeof parsed.nextId === 'number' ? parsed.nextId : 100;
+
+        return;
+
+      }
+
+    } catch(e){ console.warn('שגיאה בטעינת מצב', e); }
+
+    equipment = []; faults = []; nextId = 100;
+
+  }
+
+ 
+
+  // ===== Simple Hash utilities =====
+
+  async function sha256Hex(text) {
+
+    const enc = new TextEncoder().encode(text);
+
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+
+  }
+
+ 
+
+  function getAdmin() {
+
+    try { const raw = localStorage.getItem(ADMIN_KEY); return raw ? JSON.parse(raw) : null; }
+
+    catch { return null; }
+
+  }
+
+  function setAdmin(adminObj) {
+
+    localStorage.setItem(ADMIN_KEY, JSON.stringify(adminObj));
+
+  }
+
+  function isSession() { return sessionStorage.getItem(ADMIN_SESSION_KEY) === '1'; }
+
+  function setSession(flag) { if(flag) sessionStorage.setItem(ADMIN_SESSION_KEY,'1'); else sessionStorage.removeItem(ADMIN_SESSION_KEY); }
+
+ 
+
+  // ===== Auth UI Flow =====
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  function init() {
+
+    loadState();
+
+    const admin = getAdmin();
+
+    document.getElementById('authPanel').classList.remove('hidden');
+
+ 
+
+    if (!admin?.passHash) {
+
+      // First-time setup
+
+      document.getElementById('setupBox').classList.remove('hidden');
+
+      document.getElementById('loginBox').classList.add('hidden');
+
+      document.getElementById('authStatus').classList.add('hidden');
+
+    } else if (isSession()) {
+
+      // Already logged in this session
+
+      document.getElementById('setupBox').classList.add('hidden');
+
+      document.getElementById('loginBox').classList.add('hidden');
+
+      document.getElementById('authStatus').classList.remove('hidden');
+
+      showEquipPanel();
+
+    } else {
+
+      // Need to login
+
+      document.getElementById('setupBox').classList.add('hidden');
+
+      document.getElementById('loginBox').classList.remove('hidden');
+
+      document.getElementById('authStatus').classList.add('hidden');
+
+      hideEquipPanel();
+
+    }
+
+  }
+
+ 
+
+  async function setupAdmin() {
+
+    const p1 = (document.getElementById('newPass').value||'').trim();
+
+    const p2 = (document.getElementById('newPass2').value||'').trim();
+
+    if (!p1 || !p2) return alert('נא למלא סיסמה ואימות');
+
+    if (p1 !== p2) return alert('הסיסמאות אינן תואמות');
+
+    const passHash = await sha256Hex(p1);
+
+    setAdmin({ passHash });
+
+    setSession(true);
+
+    document.getElementById('setupBox').classList.add('hidden');
+
+    document.getElementById('authStatus').classList.remove('hidden');
+
+    showEquipPanel();
+
+  }
+
+ 
+
+  async function adminLogin() {
+
+    const pwd = (document.getElementById('loginPass').value||'').trim();
+
+    if (!pwd) return alert('נא להזין סיסמה');
+
+    const admin = getAdmin();
+
+    if (!admin?.passHash) return alert('לא הוגדרה סיסמה – יש להגדיר תחילה');
+
+    const h = await sha256Hex(pwd);
+
+    if (h !== admin.passHash) return alert('סיסמה שגויה');
+
+    setSession(true);
+
+    document.getElementById('loginBox').classList.add('hidden');
+
+    document.getElementById('authStatus').classList.remove('hidden');
+
+    showEquipPanel();
+
+  }
+
+ 
+
+  function adminLogout() {
+
+    setSession(false);
+
+    hideEquipPanel();
+
+    document.getElementById('authStatus').classList.add('hidden');
+
+    const admin = getAdmin();
+
+    if (admin?.passHash) {
+
+      document.getElementById('loginBox').classList.remove('hidden');
+
+    } else {
+
+      document.getElementById('setupBox').classList.remove('hidden');
+
+    }
+
+  }
+
+ 
+
+  function showEquipPanel(){ document.getElementById('equipPanel').classList.remove('hidden'); renderEquipment(); refreshParentSelect(); }
+
+  function hideEquipPanel(){ document.getElementById('equipPanel').classList.add('hidden'); }
+
+ 
+
+  // ===== Equipment Admin Logic =====
+
+  function renderEquipment() {
+
+    const grid = document.getElementById('grid'); grid.innerHTML='';
+
+    const q = (document.getElementById('q').value||'').toLowerCase().trim();
+
+ 
+
+    equipment.forEach(eq=>{
+
+      const parentMatch = eq.name.toLowerCase().includes(q);
+
+      const childMatches = (eq.children||[]).filter(c => c.name.toLowerCase().includes(q));
+
+      if (q && !parentMatch && childMatches.length===0) return;
+
+ 
+
+      const card = document.createElement('div'); card.className='card';
+
+      const head = document.createElement('div'); head.className='card-head';
+
+ 
+
+      const title = document.createElement('strong'); title.textContent = eq.name; head.appendChild(title);
+
+ 
+
+      const btns = document.createElement('div');
+
+      const be=document.createElement('button'); be.className='btn btn-primary'; be.textContent='✏️ ערוך'; be.onclick=()=>openEdit(eq.id);
+
+      const bd=document.createElement('button'); bd.className='btn btn-danger'; bd.textContent='🗑️ מחק'; bd.onclick=()=>delEq(eq.id);
+
+      btns.appendChild(be); btns.appendChild(bd); head.appendChild(btns);
+
+      card.appendChild(head);
+
+ 
+
+      const ul = document.createElement('ul');
+
+      (q ? childMatches : (eq.children||[])).forEach(ch=>{
+
+        const li=document.createElement('li');
+
+        const span=document.createElement('span'); span.textContent=ch.name; li.appendChild(span);
+
+        const be2=document.createElement('button'); be2.className='btn btn-outline'; be2.textContent='✏️'; be2.title='ערוך'; be2.onclick=()=>openEdit(eq.id,ch.id);
+
+        const bd2=document.createElement('button'); bd2.className='btn btn-outline'; bd2.textContent='🗑️'; bd2.title='מחק'; bd2.onclick=()=>delEq(eq.id,ch.id);
+
+        li.appendChild(be2); li.appendChild(bd2);
+
+        ul.appendChild(li);
+
+      });
+
+      if (ul.childElementCount>0) card.appendChild(ul);
+
+ 
+
+      grid.appendChild(card);
+
+    });
+
+  }
+
+ 
+
+  function openCreate() {
+
+    formMode='create'; editCtx=null;
+
+    document.getElementById('formBox').classList.remove('hidden');
+
+    document.getElementById('modeBadge').classList.add('hidden');
+
+    document.getElementById('btnSubmit').textContent='שמור';
+
+    document.getElementById('eqName').value='';
+
+    document.getElementById('eqType').disabled=false;
+
+    document.getElementById('eqType').value='parent';
+
+    document.getElementById('typeHint').textContent='בחר אם זה ציוד עצמאי או תת-יחידה';
+
+    document.getElementById('parentField').classList.add('hidden');
+
+    refreshParentSelect(); document.getElementById('eqName').focus();
+
+  }
+
+ 
+
+  function openEdit(parentId, childId) {
+
+    formMode='edit'; document.getElementById('formBox').classList.remove('hidden');
+
+    document.getElementById('modeBadge').classList.remove('hidden');
+
+    document.getElementById('modeBadge').textContent='מצב עריכה';
+
+    document.getElementById('btnSubmit').textContent='עדכן';
+
+    refreshParentSelect();
+
+ 
+
+    if (childId==null) {
+
+      const p = equipment.find(e=>e.id===parentId); if(!p) return;
+
+      editCtx = { target:'parent', parentId };
+
+      document.getElementById('eqName').value = p.name;
+
+      document.getElementById('eqType').value='parent';
+
+      document.getElementById('eqType').disabled=true;
+
+      document.getElementById('parentField').classList.add('hidden');
+
+      document.getElementById('typeHint').textContent='עריכת שם ציוד אב';
+
+    } else {
+
+      const p=equipment.find(e=>e.id===parentId); if(!p) return;
+
+      const c=p.children.find(x=>x.id===childId); if(!c) return;
+
+      editCtx = { target:'child', parentId, childId };
+
+      document.getElementById('eqName').value=c.name;
+
+      document.getElementById('eqType').value='child';
+
+      document.getElementById('eqType').disabled=true;
+
+      document.getElementById('parentField').classList.remove('hidden');
+
+      document.getElementById('eqParent').value=String(parentId);
+
+      document.getElementById('typeHint').textContent='עריכת שם/שיוך ציוד בן';
+
+    }
+
+  }
+
+ 
+
+  function closeForm(){ document.getElementById('formBox').classList.add('hidden'); formMode='create'; editCtx=null; }
+
+ 
+
+  function toggleParentField() {
+
+    const t=document.getElementById('eqType').value;
+
+    document.getElementById('parentField').classList.toggle('hidden', t!=='child');
+
+  }
+
+ 
+
+  function refreshParentSelect() {
+
+    const sel=document.getElementById('eqParent'); sel.innerHTML='';
+
+    equipment.filter(e=>e.isParent).forEach(eq=>{
+
+      const opt=document.createElement('option'); opt.value=String(eq.id); opt.textContent=eq.name; sel.appendChild(opt);
+
+    });
+
+  }
+
+ 
+
+  function saveEquipment() {
+
+    const name=(document.getElementById('eqName').value||'').trim();
+
+    const type=document.getElementById('eqType').value;
+
+    const parentIdStr=document.getElementById('eqParent').value;
+
+    const parentId = parentIdStr?parseInt(parentIdStr,10):null;
+
+ 
+
+    if (!name) return alert('הכנס שם ציוד!');
+
+    if (formMode==='edit' && editCtx) {
+
+      if (editCtx.target==='parent') {
+
+        const p=equipment.find(e=>e.id===editCtx.parentId); if(!p) return;
+
+        p.name=name;
+
+      } else {
+
+        const oldP=equipment.find(e=>e.id===editCtx.parentId); if(!oldP) return;
+
+        const ch=oldP.children.find(x=>x.id===editCtx.childId); if(!ch) return;
+
+        if (!parentId) return alert('בחר ציוד אב!');
+
+        ch.name=name;
+
+        if (parentId !== editCtx.parentId) {
+
+          oldP.children = oldP.children.filter(x=>x.id!==ch.id);
+
+          const newP=equipment.find(e=>e.id===parentId); if(!newP) return alert('ציוד האב לא קיים');
+
+          newP.children.push(ch); editCtx.parentId=newP.id;
+
+        }
+
+      }
+
+      saveState(); renderEquipment(); closeForm();
+
+      return;
+
+    }
+
+ 
+
+    // create
+
+    if (type==='child') {
+
+      if (!parentId) return alert('בחר ציוד אב!');
+
+      const p=equipment.find(e=>e.id===parentId); if(!p) return alert('ציוד האב לא קיים');
+
+      p.children.push({id: nextId++, name});
+
+    } else {
+
+      equipment.push({id: nextId++, name, isParent:true, children:[]});
+
+    }
+
+    saveState(); renderEquipment(); closeForm();
+
+  }
+
+ 
+
+  function delEq(parentId, childId) {
+
+    if (!confirm('האם אתה בטוח שברצונך למחוק?')) return;
+
+    if (childId) {
+
+      const p=equipment.find(e=>e.id===parentId); if(!p) return;
+
+      p.children = (p.children||[]).filter(x=>x.id!==childId);
+
+    } else {
+
+      equipment = equipment.filter(e=>e.id!==parentId);
+
+    }
+
+    saveState(); renderEquipment();
+
+  }
+
+</script>
+
+</body>
+
+</html>
+
+ 
